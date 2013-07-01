@@ -1,0 +1,79 @@
+1) htaccess https://github.com/sergeychernyshev/.htaccess/blob/master/.htaccess
+
+2) IPTables DDos: http://blog.bodhizazen.net/linux/prevent-dos-with-iptables/
+
+3) ====== Webserver Performance (www-vmserv) ======
+
+<note important>Ziel: Hohe Skalierbarkeit und Reduzierung der Anfälligkeit eines DOS-Angriffes</note>
+
+===== System =====
+
+  * /etc/sysctl.d/60-keepalive_settings.conf
+
+<code>
+net.ipv4.tcp_fin_timeout = 30
+net.ipv4.tcp_keepalive_intvl = 10
+net.ipv4.tcp_keepalive_probes = 2
+net.ipv4.tcp_keepalive_time = 600
+</code>
+
+===== Apache =====
+
+  * /etc/apache2/apache2.conf
+  * MaxClients = ServerLimit * ThreadsPerChild
+
+<code>
+<IfModule mpm_worker_module>
+    ServerLimit          40
+    StartServers         40
+    MinSpareThreads      25
+    MaxSpareThreads      75 
+    ThreadLimit          64
+    ThreadsPerChild      25
+    MaxClients         1000
+    MaxRequestsPerChild   0
+</IfModule>
+</code>
+
+  * /etc/apache2/mods-enabled/expires.conf
+
+<code>
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/vnd.microsoft.icon "access plus 1 year"
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/x-javascript "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType text/javascript "access plus 1 year"
+</IfModule>
+</code>
+
+  * /etc/apache2/mods-enabled/mem_cache.conf
+
+<code>
+<IfModule mod_mem_cache.c>
+        CacheEnable mem /
+        MCacheSize 524288
+        MCacheMaxObjectCount 1000
+        MCacheMinObjectSize 1
+        MCacheMaxObjectSize 4096
+</IfModule>
+</code>
+
+===== Basiswissen =====
+
+  * Maximum number of threads per process in Linux?
+
+Linux doesn't have a separate threads per process limit, just a limit on the total number of processes on the system (threads are essentially just processes with a shared address space on Linux) which you can view like this:
+
+<code>cat /proc/sys/kernel/threads-max</code>
+
+The default is the number of memory pages/4. You can increase this like:
+<code>echo 100000 > /proc/sys/kernel/threads-max</code>
+
+There is also a limit on the number of processes (an hence threads) that a single user may create, see ulimit/getrlimit for details regarding these limits.
+
+http://stackoverflow.com/questions/344203/maximum-number-of-threads-per-process-in-linux
