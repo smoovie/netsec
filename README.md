@@ -17,15 +17,15 @@ Default-Gateway: 10.0.0.2
 Gateway 10.0.1.* = 10.0.0.5
 
 ### Apache
-auto lo eth1  
-iface eth1 inet static  
-	address 10.0.0.1  
-	netmask 255.255.255.0  
-	gateway 10.0.0.2
+    auto lo eth1  
+    iface eth1 inet static  
+	    address 10.0.0.1  
+	    netmask 255.255.255.0  
+	    gateway 10.0.0.2
 
-Ziel            Router          Genmask         Flags Metric Ref    Use Iface  
-default         10.0.0.2        0.0.0.0         UG    100    0        0 eth1  
-10.0.0.0        *               255.255.255.0   U     0      0        0 eth1
+    Ziel            Router          Genmask         Flags Metric Ref    Use Iface  
+    default         10.0.0.2        0.0.0.0         UG    100    0        0 eth1  
+    10.0.0.0        *               255.255.255.0   U     0      0        0 eth1
 
 ### Firewall B
 #### eth0
@@ -38,5 +38,5 @@ IP: 10.0.1.1
 Subnetmask: 255.255.255.0
 
 ### Client
-IP: 10.0.1.2
+IP: 10.0.1.2  
 Subnetmask: 255.255.255.0
