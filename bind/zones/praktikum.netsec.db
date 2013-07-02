@@ -1,0 +1,12 @@
+praktikum.netsec.      IN      SOA     proxy.prakikum.netsec. admin.praktikum.netsec. (
+                                                        2006081401
+                                                        28800
+                                                        3600
+                                                        604800
+                                                        38400
+ )
+
+praktikum.netsec.      IN      NS              proxy.praktikum.netsec.
+
+www              IN      A       10.0.0.1
+proxy            IN      A       10.0.0.3
