@@ -1,0 +1,43 @@
+#!/bin/bash
+echo "Firewall starten..."
+
+echo "1" >  /proc/sys/net/ipv4/ip_forward
+
+FW=/sbin/iptables
+SELF_INNER_IP=10.0.0.2
+PROXY=10.0.0.3
+FW_B=10.0.0.5
+#interface to DMZ
+IN_INTERFACE=eth0
+#interface to client subnetwork
+OUT_INTERFACE=eth1
+
+#TODO interfaces/config
+#alle defaults auf drop setzen
+$FW -P INPUT DROP
+$FW -P OUTPUT DROP
+$FW -P FORWARD DROP 
+
+#alte Regeln löschen
+$FW -F
+$FW -X
+$FW -t nat -F
+
+
+#invalide Pakete verwerfen
+$FW -A FORWARD -m state --state INVALID -j DROP
+#Bestehende Verbindungen zulassen
+$FW -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+# DNS-Anfragen zum lokalen DNS-Server (Proxy) zulassen
+$FW -A FORWARD -m iprange -i $OUT_INTERFACE  -o $IN_INTERFACE --src-range 10.0.1.1-10.0.1.255 -p udp --destination-port 53 -d $PROXY -j ACCEPT
+$FW -A FORWARD -m iprange -i $OUT_INTERFACE -o $IN_INTERFACE --src-range 10.0.1.1-10.0.1.255 -p tcp --destination-port 53 -d $PROXY -j ACCEPT
+#HTTP-Verbindungen an transparenten Proxy weiterleiten
+$FW -t nat -A PREROUTING -i $OUT_INTERFACE -p tcp --destination-port 80 -j DNAT --to-destination $PROXY:3128
+#HTTP-Verbindung von Firewall an Proxy erlauben
+$FW -A FORWARD -m iprange -i $OUT_INTERFACE -o $IN_INTERFACE --src-range 10.0.1.1-10.0.1.255 -d $PROXY  -p tcp --destination-port 3128 -j ACCEPT
+
+
+
+
+

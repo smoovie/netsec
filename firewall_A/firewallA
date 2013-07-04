@@ -1,0 +1,58 @@
+#!/bin/bash
+echo "Firewall starten..."
+
+echo "1" >  /proc/sys/net/ipv4/ip_forward
+
+FW=/sbin/iptables
+SELF_INNER_IP=10.0.0.2
+SELF_OUTER_IP=141.20.35.66
+SELF_OUTER_GW=141.20.35.65
+WEBSERVER_IP=10.0.0.1
+PROXY=10.0.0.3
+FW_B=10.0.0.5
+#interface to DMZ
+IN_INTERFACE=eth1
+#interface to internet
+OUT_INTERFACE=eth0
+
+#TODO interfaces/config
+#alle defaults auf drop setzen
+$FW -P INPUT DROP
+$FW -P OUTPUT DROP
+$FW -P FORWARD DROP  
+
+#alte Regeln löschen
+$FW -F
+$FW -X
+$FW -t nat -F
+
+#nat
+#Verbindungen aus dem Internet zum internen webserver => ziel addresse ersetzen 
+$FW -A PREROUTING -t nat -i $OUT_INTERFACE  -p tcp --dport 80 -j DNAT --to $WEBSERVER_IP:80
+#Bei ausgehenden Verbindungen Source IP ersetzen
+$FW -A POSTROUTING -t nat -o $OUT_INTERFACE  -j SNAT --to-source $SELF_OUTER_IP
+
+#invalide Pakete verwerfen
+$FW -A FORWARD -m state --state INVALID -j DROP
+
+#Bestehende Verbindungen zulassen
+$FW -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+#Aufbau von http Verbindungen vom Proxy nach draußen zulassen 
+$FW -A FORWARD -i $IN_INTERFACE -o $OUT_INTERFACE -p tcp -s $PROXY --dport 80 -j ACCEPT
+#https von Firewall B ?
+#$FW -A FORWARD -i $IN_INTERFACE -o $OUT_INTERFACE -p tcp -s $FW_B --dport 443 -j ACCEPT
+#Aufbau von aussen zum Webserver zulassen
+$FW -A FORWARD -i $OUT_INTERFACE -o $IN_INTERFACE -p tcp -d $WEBSERVER_IP --dport 80 -j ACCEPT
+#DNS vom PROXY zulassen
+$FW -A FORWARD -i $IN_INTERFACE -o $OUT_INTERFACE -p tcp --dport 53 -s $PROXY -j ACCEPT
+$FW -A FORWARD -i $IN_INTERFACE -o $OUT_INTERFACE -p udp --dport 53 -s $PROXY -j ACCEPT
+
+#Verbindungslimit von außen in firewall rein (5 tcp verbindungen pro sekunde)
+#$FW -A INPUT -i $OUT_INTERFACE -p tcp --syn -m limit 5/s
+
+
+#syn flood protection aktivieren
+#echo "1" > /proc/sys/net/ipv4/tcp_syncookies
+
+
+
